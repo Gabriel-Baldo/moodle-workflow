@@ -44,6 +44,40 @@ def _eh(text: str) -> str:
     return html_module.escape(text)
 
 
+def merge_pdfs(pdf_paths: list[str], output_path: str) -> str:
+    """Merge multiple PDFs into one."""
+    from pypdf import PdfReader, PdfWriter
+
+    writer = PdfWriter()
+    for path in pdf_paths:
+        reader = PdfReader(path)
+        for page in reader.pages:
+            writer.add_page(page)
+
+    with open(output_path, "wb") as f:
+        writer.write(f)
+    return output_path
+
+
+def split_pdf(pdf_path: str, output_dir: str) -> list[str]:
+    """Split PDF into individual pages."""
+    from pypdf import PdfReader, PdfWriter
+
+    dest = Path(output_dir).expanduser()
+    dest.mkdir(parents=True, exist_ok=True)
+
+    reader = PdfReader(pdf_path)
+    outputs = []
+    for i, page in enumerate(reader.pages):
+        writer = PdfWriter()
+        writer.add_page(page)
+        out_path = dest / f"page_{i + 1}.pdf"
+        with open(out_path, "wb") as f:
+            writer.write(f)
+        outputs.append(str(out_path))
+    return outputs
+
+
 def format_pdf(content_markdown: str, output_path: str) -> str:
     try:
         from weasyprint import HTML  # type: ignore[import-untyped]

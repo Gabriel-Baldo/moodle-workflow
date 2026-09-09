@@ -1,40 +1,46 @@
 # Moodle Workflow — UTFPR
 
-Automatiza trabalhos acadêmicos do Moodle da UTFPR. Lê assignments, gera conteúdo com IA, formata em PDF/Word e submete.
+Automatiza trabalhos acadêmicos do Moodle da UTFPR. Lê assignments, gera conteúdo com IA, formata em PDF/Word/Slides/Planilhas/Código e submete.
 
 ## Stack
 
 - Python 3.11+
 - FastAPI + httpx (Moodle API)
-- python-docx + weasyprint (export)
+- python-docx + weasyprint + pypdf (export)
+- python-pptx (slides)
+- openpyxl (spreadsheets)
 - OpenRouter (IA gratuita)
+
+## Formatos suportados
+
+| Formato | Extensão | Módulo |
+|---|---|---|
+| PDF | `.pdf` | weasyprint |
+| Word | `.docx` | python-docx |
+| Slides | `.pptx` | python-pptx |
+| Planilha | `.xlsx` | openpyxl |
+| SQL | `.sql` | code_files |
+| Java | `.java` | code_files |
+| C | `.c` | code_files |
+| Python | `.py` | code_files |
 
 ## Setup rápido
 
 ```bash
-# 1. Clone
-git clone https://github.com/seu-usuario/moodle-workflow.git
-cd moodle-workflow
-
-# 2. Instale dependências
 pip install -r requirements.txt
-
-# 3. Configure suas credenciais
 cp .env.example .env
 # Edite .env com seu token Moodle e chave OpenRouter
-
-# 4. Execute
 python3 backend/main.py
 ```
 
 ## Uso
 
-### Via opencode (recomendado)
+### Via opencode
 
 Ative a skill `moodle-workflow` e diga:
 - "faz o trabalho de [disciplina]"
 - "lista meus trabalhos"
-- "gera relatório do assignment 123"
+- "gera apresentação do assignment 123"
 
 ### Via CLI
 
@@ -42,11 +48,14 @@ Ative a skill `moodle-workflow` e diga:
 # Listar assignments
 python3 scripts/workflow.py --list
 
-# Gerar trabalho
-python3 scripts/workflow.py --assignment-id 123 --format pdf
+# Gerar em qualquer formato
+python3 scripts/workflow.py --generate --assignment-id 123 --format pptx
+python3 scripts/workflow.py --generate --assignment-id 123 --format xlsx
+python3 scripts/workflow.py --generate --assignment-id 123 --format sql
 
-# Submeter
-python3 scripts/workflow.py --submit --assignment-id 123 --file trabalho.pdf
+# Merge/split de PDFs
+python3 scripts/workflow.py --merge-pdfs --pdfs a.pdf b.pdf --output merged.pdf
+python3 scripts/workflow.py --split-pdf --pdf-path doc.pdf --output-dir ./pages
 ```
 
 ## Estrutura
@@ -59,11 +68,13 @@ moodle-workflow/
 │   ├── main.py
 │   ├── moodle_client.py
 │   ├── generator.py
-│   ├── formatter.py
+│   ├── formatter.py       # PDF + merge/split
+│   ├── slides.py           # PPTX
+│   ├── spreadsheets.py     # XLSX
+│   ├── code_files.py       # SQL, Java, C, Py
 │   └── models.py
 ├── frontend/
-│   ├── index.html
-│   └── app.js
+│   └── index.html
 ├── scripts/
 │   ├── setup.sh
 │   └── workflow.py
