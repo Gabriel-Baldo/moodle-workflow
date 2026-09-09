@@ -62,6 +62,10 @@ class MoodleClient:
             for a in course.get("assignments", []):
                 a["_course_id"] = course["id"]
                 a["_course_name"] = course.get("fullname", "")
+                sub = (a.get("submissions") or [{}])[0]
+                a["_submission_status"] = sub.get("status", "none")
+                a["_submitted_time"] = sub.get("timemodified", 0)
+                a["_due_date"] = a.get("duedate", 0)
                 assignments.append(a)
         return assignments
 

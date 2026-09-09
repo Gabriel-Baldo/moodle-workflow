@@ -117,6 +117,21 @@ async def chat(message: str = Form(...), file: UploadFile = File(None)):
     return {"response": response, "file": file_info, "message": "Processado"}
 
 
+@app.get("/checklist")
+async def checklist():
+    assignments = await moodle.list_assignments()
+    result = []
+    for a in assignments:
+        result.append({
+            "id": a["id"],
+            "name": a["name"],
+            "course": a.get("_course_name", ""),
+            "due": a.get("_due_date", 0),
+            "status": a.get("_submission_status", "none"),
+        })
+    return {"checklist": result}
+
+
 @app.post("/shutdown")
 async def shutdown():
     await moodle.close()
