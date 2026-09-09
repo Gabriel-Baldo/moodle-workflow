@@ -68,19 +68,6 @@ async def cmd_generate(assignment_id: int, fmt: str, output: str | None):
         await client.close()
 
 
-async def cmd_submit(assignment_id: int):
-    env = get_env()
-    client = MoodleClient(env["MOODLE_URL"], env["MOODLE_TOKEN"])
-    try:
-        result = await client.submit_assignment(assignment_id)
-        print(f"Submetido: {result}")
-    except RuntimeError as e:
-        print(f"Erro: {e}", file=sys.stderr)
-        print("Dica: token sem permissão de submissão? Gere o arquivo e suba manualmente.", file=sys.stderr)
-    finally:
-        await client.close()
-
-
 async def cmd_merge_pdfs(pdf_paths: list[str], output: str):
     result = merge_pdfs(pdf_paths, output)
     print(f"PDFs mergeados: {result}")
@@ -98,7 +85,6 @@ async def main():
     parser.add_argument("--format", choices=["pdf", "docx", "pptx", "xlsx", "sql", "java", "c", "py", "js", "ts", "cpp", "md"], default="pdf")
     parser.add_argument("--output", help="Caminho de saída")
     parser.add_argument("--generate", action="store_true")
-    parser.add_argument("--submit", action="store_true", help="Submeter assignment")
     parser.add_argument("--merge-pdfs", action="store_true")
     parser.add_argument("--pdfs", nargs="+")
     parser.add_argument("--split-pdf", action="store_true")
@@ -111,8 +97,6 @@ async def main():
         await cmd_list()
     elif args.generate and args.assignment_id:
         await cmd_generate(args.assignment_id, args.format, args.output)
-    elif args.submit and args.assignment_id:
-        await cmd_submit(args.assignment_id)
     elif args.merge_pdfs and args.pdfs:
         await cmd_merge_pdfs(args.pdfs, args.output or "merged.pdf")
     elif args.split_pdf and args.pdf_path:

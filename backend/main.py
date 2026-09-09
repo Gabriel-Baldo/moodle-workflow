@@ -107,21 +107,7 @@ async def list_courses():
     return await moodle.list_courses()
 
 
-class SubmitRequest(BaseModel):
-    assignment_id: int
-
-
-@app.post("/submit", response_model=WorkflowResult)
-async def submit(req: SubmitRequest):
-    try:
-        result = await moodle.submit_assignment(req.assignment_id)
-        return WorkflowResult(
-            assignment_id=req.assignment_id,
-            assignment_name="",
-            output_path="",
-            format="",
-            status="submitted",
-            message=f"Submetido: {result}",
-        )
-    except RuntimeError as e:
-        raise HTTPException(status_code=403, detail=f"Submissão falhou: {e}. Token sem permissão? Salve o arquivo e suba manualmente.")
+@app.post("/shutdown")
+async def shutdown():
+    await moodle.close()
+    return {"status": "ok"}

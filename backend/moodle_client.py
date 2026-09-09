@@ -79,11 +79,6 @@ class MoodleClient:
         dest.write_bytes(r.content)
         return len(r.content)
 
-    async def submit_assignment(self, assignment_id: int) -> dict:
-        await self.call("mod_assign_save_submission", assignmentid=assignment_id,
-            plugindata={"onlinetext_editor": {"text": "<p>Submetido via moodle-workflow</p>", "format": 1, "itemid": 0}})
-        return await self.call("mod_assign_submit_for_grading", assignmentid=assignment_id)
-
 
 def strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", " ", html.unescape(text or "")).strip()

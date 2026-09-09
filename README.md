@@ -1,6 +1,14 @@
 # Moodle Workflow — UTFPR
 
-Automatiza trabalhos acadêmicos do Moodle da UTFPR. Lê assignments, gera conteúdo com IA, formata em PDF/Word/Slides/Planilhas/Código e submete.
+Automatiza trabalhos acadêmicos do Moodle da UTFPR. Lê assignments, gera conteúdo com IA, formata em PDF/Word/Slides/Planilhas/Código e salva na pasta de prontos.
+
+## Como funciona
+
+1. Lê o assignment do Moodle
+2. Gera o conteúdo com IA
+3. Formata no formato desejado
+4. Salva em `~/Documentos/moodle-workflows/`
+5. Você sobe manualmente no Moodle
 
 ## Stack
 
@@ -97,8 +105,9 @@ python3 scripts/workflow.py --list
 python3 scripts/workflow.py --generate --assignment-id 123 --format pptx
 python3 scripts/workflow.py --merge-pdfs --pdfs a.pdf b.pdf --output merged.pdf
 
-# Submeter assignment (precisa de token com permissão)
-python3 scripts/workflow.py --submit --assignment-id 123
+# Merge/split de PDFs
+python3 scripts/workflow.py --merge-pdfs --pdfs a.pdf b.pdf --output merged.pdf
+python3 scripts/workflow.py --split-pdf --pdf-path doc.pdf --output-dir ./pages
 ```
 
 ## Estrutura
