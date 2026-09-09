@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from backend.moodle_client import MoodleClient, get_env, extract_requirements, generate_content
 from backend.formatter import format_pdf, format_docx, merge_pdfs, split_pdf
@@ -105,6 +105,16 @@ async def list_assignments():
 @app.get("/courses")
 async def list_courses():
     return await moodle.list_courses()
+
+
+@app.post("/chat")
+async def chat(message: str = Form(...), file: UploadFile = File(None)):
+    file_info = None
+    if file:
+        content = await file.read()
+        file_info = {"name": file.filename, "size": len(content), "type": file.content_type}
+    response = generate_content({"title": message, "summary": message, "topics": [], "format": "text"})
+    return {"response": response, "file": file_info, "message": "Processado"}
 
 
 @app.post("/shutdown")
