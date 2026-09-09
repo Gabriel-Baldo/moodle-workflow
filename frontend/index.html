@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moodle Workflow — UTFPR</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #eee; padding: 2rem; }
+  h1 { color: #e94560; margin-bottom: 1rem; }
+  .card { background: #16213e; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+  button { background: #e94560; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
+  button:hover { background: #c73e54; }
+  pre { background: #0f3460; padding: 1rem; border-radius: 4px; overflow-x: auto; margin-top: 1rem; white-space: pre-wrap; }
+  .ok { color: #4ecca3; }
+  .err { color: #e94560; }
+  input, select { background: #0f3460; color: #eee; border: 1px solid #333; padding: 0.5rem; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>📚 Moodle Workflow</h1>
+<div class="card">
+  <h2>Status</h2>
+  <button onclick="checkHealth()">Verificar conexão</button>
+  <pre id="status"></pre>
+</div>
+<div class="card">
+  <h2>Assignments</h2>
+  <button onclick="listAssignments()">Listar</button>
+  <pre id="assignments"></pre>
+</div>
+<div class="card">
+  <h2>Gerar Trabalho</h2>
+  <label>Assignment ID: <input id="aid" type="number" value="1"></label>
+  <label>Formato: <select id="fmt"><option value="pdf">PDF</option><option value="docx">Word</option></select></label>
+  <button onclick="generate()">Gerar</button>
+  <pre id="result"></pre>
+</div>
+<script>
+const API = '';
+async function checkHealth() {
+  try {
+    const r = await fetch(API + '/health');
+    const d = await r.json();
+    document.getElementById('status').textContent = JSON.stringify(d, null, 2);
+    document.getElementById('status').className = 'ok';
+  } catch (e) {
+    document.getElementById('status').textContent = 'Erro: ' + e.message;
+    document.getElementById('status').className = 'err';
+  }
+}
+async function listAssignments() {
+  try {
+    const r = await fetch(API + '/assignments');
+    const d = await r.json();
+    document.getElementById('assignments').textContent = JSON.stringify(d, null, 2);
+  } catch (e) {
+    document.getElementById('assignments').textContent = 'Erro: ' + e.message;
+  }
+}
+async function generate() {
+  const aid = document.getElementById('aid').value;
+  const fmt = document.getElementById('fmt').value;
+  try {
+    const r = await fetch(API + '/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({assignment_id: parseInt(aid), format: fmt}) });
+    const d = await r.json();
+    document.getElementById('result').textContent = JSON.stringify(d, null, 2);
+  } catch (e) {
+    document.getElementById('result').textContent = 'Erro: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>
