@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""CLI workflow para moodle-workflow.
-
-Uso:
-    python3 scripts/workflow.py --list
-    python3 scripts/workflow.py --generate --assignment-id 123 --format pdf
-    python3 scripts/workflow.py --merge-pdfs --pdfs a.pdf b.pdf --output merged.pdf
-    python3 scripts/workflow.py --split-pdf --pdf-path doc.pdf --output-dir ./pages
-"""
+"""CLI workflow para moodle-workflow."""
 
 import argparse
 import asyncio
@@ -48,20 +41,16 @@ async def cmd_generate(assignment_id: int, fmt: str, output: str | None):
         if not assignment:
             print(f"Assignment {assignment_id} não encontrado.")
             return
-
         reqs = extract_requirements(assignment)
         fmt = fmt if fmt else reqs.get("format", "pdf")
         content = generate_content(reqs)
-
         out_dir = Path(env["OUTPUT_DIR"]).expanduser()
         out_dir.mkdir(parents=True, exist_ok=True)
-
         if output:
             out_path = Path(output).expanduser()
         else:
             safe = assignment["name"].replace(" ", "_").replace("/", "_")[:50]
             out_path = out_dir / f"{safe}.{fmt}"
-
         if fmt == "pdf":
             format_pdf(content, str(out_path))
         elif fmt == "docx":
@@ -74,8 +63,20 @@ async def cmd_generate(assignment_id: int, fmt: str, output: str | None):
             code_from_markdown(content, fmt, str(out_path))
         else:
             out_path.write_text(content, encoding="utf-8")
-
         print(f"Gerado: {out_path}")
+    finally:
+        await client.close()
+
+
+async def cmd_submit(assignment_id: int):
+    env = get_env()
+    client = MoodleClient(env["MOODLE_URL"], env["MOODLE_TOKEN"])
+    try:
+        result = await client.submit_assignment(assignment_id)
+        print(f"Submetido: {result}")
+    except RuntimeError as e:
+        print(f"Erro: {e}", file=sys.stderr)
+        print("Dica: token sem permissão de submissão? Gere o arquivo e suba manualmente.", file=sys.stderr)
     finally:
         await client.close()
 
@@ -92,14 +93,15 @@ async def cmd_split_pdf(pdf_path: str, output_dir: str):
 
 async def main():
     parser = argparse.ArgumentParser(description="Moodle Workflow CLI")
-    parser.add_argument("--list", action="store_true", help="Listar assignments")
-    parser.add_argument("--assignment-id", type=int, help="ID do assignment")
+    parser.add_argument("--list", action="store_true")
+    parser.add_argument("--assignment-id", type=int)
     parser.add_argument("--format", choices=["pdf", "docx", "pptx", "xlsx", "sql", "java", "c", "py", "js", "ts", "cpp", "md"], default="pdf")
     parser.add_argument("--output", help="Caminho de saída")
-    parser.add_argument("--generate", action="store_true", help="Gerar trabalho")
-    parser.add_argument("--merge-pdfs", action="store_true", help="Merge de PDFs")
-    parser.add_argument("--pdfs", nargs="+", help="PDFs para merge")
-    parser.add_argument("--split-pdf", action="store_true", help="Dividir PDF")
+    parser.add_argument("--generate", action="store_true")
+    parser.add_argument("--submit", action="store_true", help="Submeter assignment")
+    parser.add_argument("--merge-pdfs", action="store_true")
+    parser.add_argument("--pdfs", nargs="+")
+    parser.add_argument("--split-pdf", action="store_true")
     parser.add_argument("--pdf-path", help="Caminho do PDF")
     parser.add_argument("--output-dir", help="Dir de saída")
 
@@ -109,6 +111,8 @@ async def main():
         await cmd_list()
     elif args.generate and args.assignment_id:
         await cmd_generate(args.assignment_id, args.format, args.output)
+    elif args.submit and args.assignment_id:
+        await cmd_submit(args.assignment_id)
     elif args.merge_pdfs and args.pdfs:
         await cmd_merge_pdfs(args.pdfs, args.output or "merged.pdf")
     elif args.split_pdf and args.pdf_path:
