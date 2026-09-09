@@ -64,12 +64,23 @@ Crie `.cursor/mcp.json`:
 #### Windsurf / Codex
 Crie `~/.codeium/windsurf/mcp_config.json` ou `~/.codex/mcp.json`.
 
-## Setup rápido
+## Setup rápido (UTFPR)
 
 ```bash
+# Setup automático: pede RA + senha, pega token, configura tudo
+bash scripts/setup-utfpr.sh
+
+# Ou manualmente:
 pip install -r requirements.txt
 cp .env.example .env
+# Edite .env com seu token Moodle e chave OpenRouter
 python3 backend/main.py
+```
+
+### Obter token manualmente
+
+```bash
+mcp-moodle-token https://moodle.utfpr.edu.br --user a2759993 --method local
 ```
 
 ## Uso
