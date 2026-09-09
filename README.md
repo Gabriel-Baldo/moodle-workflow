@@ -96,6 +96,9 @@ Ative a skill `moodle-workflow` e diga:
 python3 scripts/workflow.py --list
 python3 scripts/workflow.py --generate --assignment-id 123 --format pptx
 python3 scripts/workflow.py --merge-pdfs --pdfs a.pdf b.pdf --output merged.pdf
+
+# Submeter assignment (precisa de token com permissão)
+python3 scripts/workflow.py --submit --assignment-id 123
 ```
 
 ## Estrutura
