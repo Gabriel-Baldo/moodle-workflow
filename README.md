@@ -1,7 +1,7 @@
-# Moodle Workflow — UTFPR
+# Moodle Workflow — qualquer Moodle (padrão: UTFPR)
 
-Gera trabalhos acadêmicos do Moodle com IA: lista seus assignments, cria o conteúdo,
-aguarda sua validação e submete. Também gera resumos para estudo a partir da matéria.
+Gera trabalhos acadêmicos de qualquer Moodle com IA (vem configurado para a UTFPR):
+lista seus assignments, cria o conteúdo, aguarda sua validação e submete. Também gera resumos para estudo a partir da matéria.
 
 > **Este projeto não é publicado em lugar nenhum — cada pessoa usa localmente.**
 > Você recebe a pasta do projeto (clone ou cópia), configura na sua máquina
@@ -94,19 +94,21 @@ opencode
 Na primeira vez, digite `/connect` e siga a tela para ligar um provedor de IA
 (para iniciantes, o **Zen** do próprio opencode é o mais simples).
 
-### A4. Conecte o Moodle da UTFPR
+### A4. Conecte o seu Moodle
 
-No terminal, dentro da pasta do projeto:
+No terminal, dentro da pasta do projeto (padrão: UTFPR; outro Moodle:
+`bash scripts/setup-moodle.sh --url https://seu.moodle.br`):
 
 ```bash
-bash scripts/setup-utfpr.sh
+bash scripts/setup-moodle.sh
 ```
 
-Ele pede seu **RA** e **senha** (a senha não fica salva — só o token de acesso).
+Ele pede a **URL** (Enter = UTFPR), seu **usuário** e **senha**
+(a senha não fica salva — só o token de acesso).
 
 > **Windows sem WSL:** se o comando `bash` não existir, rode dentro do
 > **Git Bash** ([git-scm.com/downloads](https://git-scm.com/downloads)).
-> Alternativa: gere o token em `https://moodle.utfpr.edu.br/login/token.php`
+> Alternativa: gere o token em `<sua-url-moodle>/login/token.php`
 > e cole no arquivo `.env` (copie antes: `cp .env.example .env`).
 
 ### A5. Primeiro uso — as 4 frases mágicas
@@ -139,7 +141,7 @@ Você com opencode, Claude Code/Desktop, Cursor, Windsurf, Codex ou similar:
 ```bash
 cd moodle-workflow-project
 pip install -r requirements.txt
-bash scripts/setup-utfpr.sh      # RA + senha → token (só o token é salvo)
+bash scripts/setup-moodle.sh      # URL + usuário + senha → token (só o token é salvo)
 bash scripts/setup-mcp.sh        # liga os MCPs no seu harness (opcional)
 ```
 
@@ -156,8 +158,9 @@ Ative a skill **`moodle-workflow`** no seu harness e use:
 Env (`.env`, a partir do `.env.example`):
 
 ```env
-MOODLE_URL=https://moodle.utfpr.edu.br
+MOODLE_URL=https://moodle.utfpr.edu.br   # troque pelo seu Moodle
 MOODLE_TOKEN=
+INSTITUTION_NAME=UTFPR                   # aparece no cabeçalho gerado pela IA
 OPENROUTER_API_KEY=          # texto (free) + imagens
 OPENROUTER_IMAGE_MODEL=bytedance-seed/seedream-4.5
 OPENAI_API_KEY=              # fallback de imagens (opcional)

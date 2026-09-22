@@ -1,9 +1,9 @@
 ---
 name: moodle-workflow
-description: Resolve trabalhos acadêmicos do Moodle UTFPR. Use quando o usuário disser "faz o trabalho", "gera o trabalho", "resolve o assignment", "trabalho de", "trabalho da disciplina", OU quando quiser gerar e formatar um trabalho acadêmico com base em um assignment do Moodle. Lê o assignment, gera conteúdo com IA, formata, aguarda validação em drafts/ e submete após approve. Salva resumos por módulo para estudos.
+description: Resolve trabalhos acadêmicos de qualquer Moodle (padrão UTFPR). Use quando o usuário disser "faz o trabalho", "gera o trabalho", "resolve o assignment", "trabalho de", "trabalho da disciplina", OU quando quiser gerar e formatar um trabalho acadêmico com base em um assignment do Moodle. Lê o assignment, gera conteúdo com IA, formata, aguarda validação em drafts/ e submete após approve. Salva resumos por módulo para estudos.
 ---
 
-# Moodle Workflow — Trabalhos Acadêmicos UTFPR
+# Moodle Workflow — Trabalhos Acadêmicos (qualquer Moodle, padrão UTFPR)
 
 ## Pastas de saída (`OUTPUT_DIR`, padrão `~/Documentos/moodle-workflows/`)
 - `drafts/` — rascunhos aguardando validação

@@ -16,6 +16,25 @@ read -p "Escolha: " choice
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 MCP_JSON="$PROJECT_DIR/mcp.json"
 
+# Generaliza para qualquer Moodle: se .env tem MOODLE_URL, injeta no JSON usado
+ENV_URL="$(grep -E '^MOODLE_URL=' "$PROJECT_DIR/.env" 2>/dev/null | cut -d= -f2- | tr -d ' ')"
+if [ -n "$ENV_URL" ]; then
+  MCP_JSON_TMP="$(mktemp)"
+  MOODLE_URL_OVERRIDE="$ENV_URL" SRC_JSON="$MCP_JSON" DST_JSON="$MCP_JSON_TMP" python3 -c "
+import json, os
+with open(os.environ['SRC_JSON']) as f:
+    mcp = json.load(f)
+try:
+    mcp['mcpServers']['moodle']['env']['MOODLE_URL'] = os.environ['MOODLE_URL_OVERRIDE']
+except KeyError:
+    pass
+with open(os.environ['DST_JSON'], 'w') as f:
+    json.dump(mcp, f, indent=2)
+"
+  MCP_JSON="$MCP_JSON_TMP"
+  echo "Usando MOODLE_URL do .env: $ENV_URL"
+fi
+
 case "$choice" in
   1|claude)
     CONFIG="$HOME/.claude.json"
