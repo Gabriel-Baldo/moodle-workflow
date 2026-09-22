@@ -8,6 +8,5 @@ fastapi>=0.110.0
 uvicorn>=0.29.0
 mcp>=1.6.0
 pydantic>=2.7.0
-mmdc>=0.7.0
 mermaidx>=0.7.0
 pillow>=10.0.0

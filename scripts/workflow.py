@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 
 from moodle_client import MoodleClient, get_env, extract_requirements, generate_content
+from generator import generate_with_fallback, assignment_prompt
 from formatter import format_pdf, format_docx, merge_pdfs, split_pdf
 from slides import presentation_from_markdown
 from spreadsheets import spreadsheet_from_markdown
@@ -74,7 +75,14 @@ async def cmd_generate(assignment_id: int, fmt: str, output: str | None):
             return
         reqs = extract_requirements(assignment)
         fmt = fmt if fmt else reqs.get("format", "pdf")
-        content = generate_content(reqs)
+        fallback = generate_content(reqs)
+        content, source = await generate_with_fallback(
+            assignment_prompt(reqs["title"], reqs.get("summary", ""), reqs.get("topics", []), fmt),
+            fallback,
+            api_key=env.get("OPENROUTER_API_KEY", ""),
+            model=env.get("OPENROUTER_MODEL", ""),
+        )
+        print(f"fonte do conteúdo: {source}")
         _, drafts_dir, _ = draft_store._dirs(env["OUTPUT_DIR"])
         if output:
             out_path = Path(output).expanduser()
@@ -105,7 +113,12 @@ async def cmd_approve(draft_id: str, submit: bool):
         client = MoodleClient(env["MOODLE_URL"], env["MOODLE_TOKEN"])
         try:
             try:
-                saved = await client.save_submission(entry["assignment_id"])
+                final_path = entry.get("final_path", "")
+                if final_path and Path(final_path).exists():
+                    saved = await client.save_submission_with_file(entry["assignment_id"], final_path)
+                    print(f"arquivo anexado: {final_path}")
+                else:
+                    saved = await client.save_submission(entry["assignment_id"])
                 print(f"save_submission: {saved}")
                 submitted = await client.submit_for_grading(entry["assignment_id"])
                 print(f"submit_for_grading: {submitted}")

@@ -100,6 +100,29 @@ class MoodleClient:
             acceptsubmissionstatement=accept_terms,
         )
 
+    async def upload_to_draft(self, file_path: str) -> int:
+        """Sobe arquivo p/ área de rascunho do usuário. Retorna o itemid."""
+        dest = Path(file_path).expanduser()
+        if not dest.exists():
+            raise FileNotFoundError(f"Arquivo não encontrado: {file_path}")
+        url = f"{self.url}/webservice/upload.php?token={self.token}"
+        with open(dest, "rb") as f:
+            files = {"file": (dest.name, f, "application/octet-stream")}
+            data = {"filepath": "/", "filearea": "draft", "itemid": "0"}
+            r = await self._client.post(url, data=data, files=files)
+        r.raise_for_status()
+        payload = r.json()
+        if isinstance(payload, dict) and payload.get("exception"):
+            raise RuntimeError(f"Moodle upload error: {payload.get('message')}")
+        return payload[0]["itemid"]
+
+    async def save_submission_with_file(self, assignment_id: int, file_path: str) -> dict:
+        """Anexa arquivo ao assignment (upload + save_submission)."""
+        itemid = await self.upload_to_draft(file_path)
+        return await self.save_submission(
+            assignment_id, plugindata={"files_filemanager": itemid}
+        )
+
 
 def strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", " ", html.unescape(text or "")).strip()

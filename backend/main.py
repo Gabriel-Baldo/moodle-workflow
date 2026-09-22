@@ -6,6 +6,7 @@ from backend.slides import create_presentation, presentation_from_markdown
 from backend.spreadsheets import create_spreadsheet, spreadsheet_from_markdown
 from backend.code_files import generate_code, code_from_markdown, get_code_extension
 from backend.models import Assignment, WorkflowResult
+from backend.generator import generate_with_fallback, assignment_prompt, study_prompt
 from backend import drafts as draft_store
 from backend import knowledge as knowledge_store
 from backend.images import (
@@ -59,6 +60,7 @@ class GenerateRequest(BaseModel):
     assignment_id: int
     format: str = "pdf"
     language: str = ""
+    use_ai: bool = True
 
 
 class MergePdfsRequest(BaseModel):
@@ -91,6 +93,7 @@ class StudySummaryRequest(BaseModel):
     format: str = "pdf"  # md | pdf | pptx
     with_diagram: bool = True
     with_images: bool = False
+    use_ai: bool = True
 
 
 class ImageRequest(BaseModel):
@@ -117,7 +120,13 @@ async def generate(req: GenerateRequest):
 
     reqs = extract_requirements(assignment)
     fmt = req.format if req.format else reqs.get("format", "pdf")
-    content = generate_content(reqs)
+    fallback = generate_content(reqs)
+    content, source = await generate_with_fallback(
+        assignment_prompt(reqs["title"], reqs.get("summary", ""), reqs.get("topics", []), fmt),
+        fallback,
+        api_key=env.get("OPENROUTER_API_KEY", ""),
+        model=env.get("OPENROUTER_MODEL", ""),
+    ) if req.use_ai else (fallback, "template")
 
     base, drafts_dir, _ = draft_store._dirs(env["OUTPUT_DIR"])
     safe_name = assignment["name"].replace(" ", "_").replace("/", "_")[:50]
@@ -143,7 +152,7 @@ async def generate(req: GenerateRequest):
         output_path=str(output_path),
         format=fmt,
         status="draft",
-        message=f"Rascunho {draft_id} aguardando validação em {output_path}",
+        message=f"Rascunho {draft_id} [{source}] aguardando validação em {output_path}",
     )
 
 
@@ -161,12 +170,18 @@ async def approve(req: ApproveRequest):
     submission: dict = {}
     if req.submit:
         try:
-            submission["saved"] = await moodle.save_submission(entry["assignment_id"])
+            final_path = entry.get("final_path", "")
+            if final_path and Path(final_path).exists():
+                submission["saved"] = await moodle.save_submission_with_file(
+                    entry["assignment_id"], final_path
+                )
+                submission["attached"] = final_path
+            else:
+                submission["saved"] = await moodle.save_submission(entry["assignment_id"])
             submission["submitted"] = await moodle.submit_for_grading(entry["assignment_id"])
         except Exception as e:
             submission["error"] = (
-                f"{e}. Upload manual necessário: {entry.get('final_path')}. "
-                "Submissão com arquivo exige upload prévio no Moodle — faça o upload manual desta vez."
+                f"{e}. Faça upload manual de {entry.get('final_path')} no Moodle."
             )
     return {"status": "approved", "draft": entry, "submission": submission}
 
@@ -289,13 +304,20 @@ async def study_summary(req: StudySummaryRequest):
             detail="Sem cache de conhecimento. Rode POST /sync-knowledge ou GET /checklist primeiro.",
         )
     scope = req.topic or "toda a matéria cacheada"
-    content = generate_content({
+    fallback = generate_content({
         "title": f"Resumo de estudo — {scope}",
         "summary": f"Baseado no cache do Moodle ({len(cached)} chars). Tópico: {scope}",
         "topics": [],
         "format": "text",
     })
-    full = f"{content}\n\n---\n\n## Base do Moodle (cache)\n\n{cached[:12000]}"
+    ai_text, source = await generate_with_fallback(
+        study_prompt(scope, cached),
+        fallback,
+        api_key=env.get("OPENROUTER_API_KEY", ""),
+        model=env.get("OPENROUTER_MODEL", ""),
+    ) if req.use_ai else (fallback, "template")
+    full = f"{ai_text}\n\n---\n\n## Base do Moodle (cache)\n\n{cached[:12000]}"
+    _ = source
 
     out_dir = _output_dir() / "resumos"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -305,7 +327,7 @@ async def study_summary(req: StudySummaryRequest):
     assets: dict = {"diagrams": [], "images": []}
     if req.with_diagram:
         try:
-            mm = mindmap_from_topics(scope, [l.strip("- *")[:60] for l in content.split("\n") if l.strip().startswith(("-", "*"))][:8] or ["Conceitos", "Exemplos", "Revisão"])
+            mm = mindmap_from_topics(scope, [l.strip("- *")[:60] for l in ai_text.split("\n") if l.strip().startswith(("-", "*"))][:8] or ["Conceitos", "Exemplos", "Revisão"])
             dp = str(out_dir / f"{safe}_{ts}_mapa.png")
             render_mermaid(mm, dp)
             assets["diagrams"].append(dp)
