@@ -34,12 +34,22 @@ class MoodleClient:
         await self._client.aclose()
 
     async def call(self, fn: str, **params: Any) -> Any:
-        payload = {
+        payload: dict[str, Any] = {
             "wstoken": self.token,
             "wsfunction": fn,
             "moodlewsrestformat": "json",
-            **params,
         }
+        for key, value in params.items():
+            # Moodle REST exige arrays no formato key[0], key[1]...
+            # (chaves repetidas são rejeitadas em versões novas com invalidparameter)
+            if isinstance(value, (list, tuple)):
+                for i, item in enumerate(value):
+                    payload[f"{key}[{i}]"] = item
+            elif isinstance(value, dict):
+                for sub, item in value.items():
+                    payload[f"{key}[{sub}]"] = item
+            elif value is not None:
+                payload[key] = value
         r = await self._client.post(f"{self.url}/webservice/rest/server.php", data=payload)
         r.raise_for_status()
         data = r.json()
