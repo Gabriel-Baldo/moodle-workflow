@@ -58,7 +58,11 @@ Padrão:
 ## Imagens e diagramas
 
 - Mapas mentais/diagramas → Mermaid local (`POST /generate-diagram`, grátis, PNG).
-- Imagens generativas → OpenRouter (`POST /generate-image`, usa créditos).
+- Imagens generativas → cadeia de provedores (`IMAGE_PROVIDERS`, padrão `openrouter,openai`):
+  - `openrouter` (default, modelo `OPENROUTER_IMAGE_MODEL`, usa créditos)
+  - `openai` (fallback, modelo `OPENAI_IMAGE_MODEL=gpt-image-1-mini`, requer `OPENAI_API_KEY`)
+  - `POST /generate-image` aceita `provider` p/ forçar um dos dois; sem ele, tenta em ordem.
+- NOTA: API do Claude (Anthropic) NÃO gera imagens — só interpreta. Via harness (Codex/Claude com MCP) o próprio agente pode gerar usando as ferramentas dele; no backend a geração é openrouter→openai.
 - Convenção no markdown: `[IMAGE: descrição em inglês]` vira PNG; blocos ` ```mermaid ` viram diagramas.
 
 ## Endpoints
