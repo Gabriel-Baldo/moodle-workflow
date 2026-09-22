@@ -81,6 +81,7 @@ async def cmd_generate(assignment_id: int, fmt: str, output: str | None):
             fallback,
             api_key=env.get("OPENROUTER_API_KEY", ""),
             model=env.get("OPENROUTER_MODEL", ""),
+            institution=env.get("INSTITUTION_NAME", ""),
         )
         print(f"fonte do conteúdo: {source}")
         _, drafts_dir, _ = draft_store._dirs(env["OUTPUT_DIR"])

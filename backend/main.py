@@ -129,6 +129,7 @@ async def generate(req: GenerateRequest):
         fallback,
         api_key=env.get("OPENROUTER_API_KEY", ""),
         model=env.get("OPENROUTER_MODEL", ""),
+        institution=env.get("INSTITUTION_NAME", ""),
     ) if req.use_ai else (fallback, "template")
 
     base, drafts_dir, _ = draft_store._dirs(env["OUTPUT_DIR"])
@@ -318,6 +319,7 @@ async def study_summary(req: StudySummaryRequest):
         fallback,
         api_key=env.get("OPENROUTER_API_KEY", ""),
         model=env.get("OPENROUTER_MODEL", ""),
+        institution=env.get("INSTITUTION_NAME", ""),
     ) if req.use_ai else (fallback, "template")
     full = f"{ai_text}\n\n---\n\n## Base do Moodle (cache)\n\n{cached[:12000]}"
     _ = source

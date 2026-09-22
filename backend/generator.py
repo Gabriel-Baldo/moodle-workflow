@@ -3,13 +3,21 @@ import httpx
 
 
 class ContentGenerator:
-    def __init__(self, api_key: str, model: str):
+    def __init__(self, api_key: str, model: str, institution: str = ""):
         self.api_key = api_key
         self.model = model
+        self.institution = institution
         self._client = httpx.AsyncClient(timeout=120.0)
 
     async def close(self) -> None:
         await self._client.aclose()
+
+    def system_prompt(self) -> str:
+        suffix = f" da {self.institution}" if self.institution else ""
+        return (
+            f"Você é um assistente acadêmico{suffix}. Responda em português brasileiro, "
+            "de forma clara e objetiva. Inclua código comentado quando aplicável."
+        )
 
     async def generate(self, prompt: str) -> str:
         """Generate content using OpenRouter API."""
@@ -23,7 +31,7 @@ class ContentGenerator:
         body = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": "Você é um assistente acadêmico da UTFPR. Responda em português brasileiro, de forma clara e objetiva. Inclua código comentado quando aplicável."},
+                {"role": "system", "content": self.system_prompt()},
                 {"role": "user", "content": prompt},
             ],
             "max_tokens": 4096,
@@ -36,7 +44,7 @@ class ContentGenerator:
 
 
 async def generate_with_fallback(
-    prompt: str, fallback: str, api_key: str = "", model: str = ""
+    prompt: str, fallback: str, api_key: str = "", model: str = "", institution: str = ""
 ) -> tuple[str, str]:
     """Gera via IA; em caso de erro/sem chave retorna fallback.
 
@@ -44,7 +52,7 @@ async def generate_with_fallback(
     """
     if not api_key:
         return fallback, "template"
-    gen = ContentGenerator(api_key, model)
+    gen = ContentGenerator(api_key, model, institution)
     try:
         return await gen.generate(prompt), "ai"
     except Exception as e:

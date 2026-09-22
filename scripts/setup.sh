@@ -18,7 +18,8 @@ echo "  ✓ ~/Documentos/moodle-workflows/"
 echo "[3/3] Verificando token Moodle..."
 if [ -z "$MOODLE_TOKEN" ]; then
   echo "  ⚠ MOODLE_TOKEN não definido."
-  echo "  Crie um token em: https://moodle.utfpr.edu.br/login/token.php"
+  echo "  Rode: bash scripts/setup-moodle.sh [--url https://seu.moodle.br]"
+  echo "  Ou crie um token em: ${MOODLE_URL:-https://moodle.utfpr.edu.br}/login/token.php"
   echo "  Depois: export MOODLE_TOKEN=seu_token"
 fi
 

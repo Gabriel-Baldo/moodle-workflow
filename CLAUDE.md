@@ -1,4 +1,4 @@
-# Moodle Workflow — Trabalhos Acadêmicos UTFPR
+# Moodle Workflow — Trabalhos Acadêmicos (qualquer Moodle, padrão UTFPR)
 
 > Skill: gera trabalhos a partir de assignments do Moodle, com pipe de validação.
 
