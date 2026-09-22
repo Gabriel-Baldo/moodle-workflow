@@ -33,3 +33,60 @@ class ContentGenerator:
         r.raise_for_status()
         data = r.json()
         return data["choices"][0]["message"]["content"]
+
+
+async def generate_with_fallback(
+    prompt: str, fallback: str, api_key: str = "", model: str = ""
+) -> tuple[str, str]:
+    """Gera via IA; em caso de erro/sem chave retorna fallback.
+
+    Retorna (conteúdo, fonte) onde fonte ∈ {"ai", "template", "template-fallback"}.
+    """
+    if not api_key:
+        return fallback, "template"
+    gen = ContentGenerator(api_key, model)
+    try:
+        return await gen.generate(prompt), "ai"
+    except Exception as e:
+        return fallback + f"\n\n> Aviso: IA indisponível ({e}). Usado template local.", "template-fallback"
+    finally:
+        await gen.close()
+
+
+def assignment_prompt(title: str, summary: str, topics: list[str], fmt: str) -> str:
+    topicos = "\n".join(f"- {t}" for t in topics) if topics else "(não identificados — estruture você)"
+    return f"""Gere o trabalho acadêmico COMPLETO em Markdown (sem placeholder, texto final):
+
+Título: {title}
+Descrição do professor: {summary}
+Tópicos/critérios identificados:
+{topicos}
+Formato de entrega: {fmt}
+
+Estrutura obrigatória:
+1. # Título + linha de integrantes como "[Integrantes: ...]" (placeholder)
+2. ## Introdução
+3. ## Desenvolvimento (uma subseção por tópico)
+4. ## Conclusão
+5. ## Referências (5+ entradas ABNT plausíveis)
+
+Regras:
+- Português brasileiro, tom acadêmico, conteúdo pronto para entrega.
+- Se o trabalho pedir imagem/ilustração, insira no local o marcador [IMAGE: descrição detalhada em inglês].
+- Se um diagrama/mapa mental ajudar, insira um bloco ```mermaid válido.
+"""
+
+
+def study_prompt(scope: str, cached_excerpt: str) -> str:
+    return f"""Gere um RESUMO DE ESTUDO completo em Markdown (texto final, sem placeholder):
+
+Escopo: {scope}
+Material base do Moodle (cache):
+---
+{cached_excerpt[:8000]}
+---
+
+Estrutura: # título, ## Conceitos-chave (bullets), ## Explicação por conceito,
+## Exemplos, ## Resumo final de 5 linhas.
+Feche com um bloco ```mermaid mindmap do escopo e, se houver conceito visual,
+um marcador [IMAGE: descrição em inglês]."""
