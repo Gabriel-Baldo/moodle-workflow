@@ -83,6 +83,23 @@ class MoodleClient:
         dest.write_bytes(r.content)
         return len(r.content)
 
+    # -- Submissão (chamado apenas após approve do usuário) --
+    async def get_submission_status(self, assignment_id: int) -> dict:
+        return await self.call("mod_assign_get_submission_status", assignid=assignment_id)
+
+    async def save_submission(self, assignment_id: int, plugindata: dict | None = None) -> dict:
+        params: dict[str, Any] = {"assignmentid": assignment_id}
+        if plugindata:
+            params["plugindata"] = plugindata
+        return await self.call("mod_assign_save_submission", **params)
+
+    async def submit_for_grading(self, assignment_id: int, accept_terms: bool = True) -> dict:
+        return await self.call(
+            "mod_assign_submit_for_grading",
+            assignmentid=assignment_id,
+            acceptsubmissionstatement=accept_terms,
+        )
+
 
 def strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", " ", html.unescape(text or "")).strip()
