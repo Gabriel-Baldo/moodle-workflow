@@ -1,12 +1,15 @@
 ---
 name: moodle-workflow
-description: Resolve trabalhos acadêmicos do Moodle UTFPR. Use quando o usuário disser "faz o trabalho", "gera o trabalho", "resolve o assignment", "trabalho de", "trabalho da disciplina", OU quando quiser gerar e formatar um trabalho acadêmico com base em um assignment do Moodle. Lê o assignment, gera conteúdo, formata em PDF ou Word conforme exigido, e salva em ~/Documentos/moodle-workflows/.
+description: Resolve trabalhos acadêmicos do Moodle UTFPR. Use quando o usuário disser "faz o trabalho", "gera o trabalho", "resolve o assignment", "trabalho de", "trabalho da disciplina", OU quando quiser gerar e formatar um trabalho acadêmico com base em um assignment do Moodle. Lê o assignment, gera conteúdo com IA, formata, aguarda validação em drafts/ e submete após approve. Salva resumos por módulo para estudos.
 ---
 
 # Moodle Workflow — Trabalhos Acadêmicos UTFPR
 
-## Pasta de saída
-Todos os trabalhos gerados vão para `~/Documentos/moodle-workflows/`
+## Pastas de saída (`OUTPUT_DIR`, padrão `~/Documentos/moodle-workflows/`)
+- `drafts/` — rascunhos aguardando validação
+- `final/` — aprovados
+- `conhecimento/<curso_id>_<nome>/` — .md por módulo, atualizados a cada análise
+- `resumos/`, `imagens/`, `diagramas/` — estudo e assets
 
 ## Estado da conversa (ctx)
 
@@ -20,7 +23,7 @@ ctx = {
   format: null,
   topic: null,
   requirements: null,
-  step: "idle"
+  step: "idle"  # idle | awaiting_members | awaiting_format | generating | awaiting_approval | done
 }
 ```
 
@@ -33,55 +36,44 @@ Padrão:
 "Preciso saber [campo] pra prosseguir. Me passa [exemplo]?"
 ```
 
-## Fluxo completo
+## Fluxo completo (pipe com validação)
 
-1. **Ler assignment** → usa `list_assignments` e `get_course_contents` do MCP moodle
-2. **Analisar requisitos** → extrai formato, tema, critérios, prazo
+1. **Listar** → `GET /checklist` (lista tudo + atualiza `.md` por módulo em `conhecimento/`)
+2. **Analisar requisitos** → formato, tema, critérios, prazo
 3. **Verificar ctx** → se falta info (integrantes, formato), PERGUNTE antes de gerar
-4. **Gerar conteúdo** → produz o texto/código/respostas
-5. **Formatar** → PDF ou Word conforme o assignment pede
-6. **Salvar** → em `~/Documentos/moodle-workflows/`
+4. **Gerar** → `POST /generate` (IA via OpenRouter com fallback p/ template; salva em `drafts/`, status `draft`)
+5. **Validar** → mostre o rascunho ao usuário, aguarde aval (step `awaiting_approval`)
+6. **Aprovar** → `POST /approve {draft_id}` (move p/ `final/` + anexa e submete no Moodle) ou `POST /reject {draft_id, motivo}`
 
 ## Comandos
 
 - "quais pendentes?" → GET /checklist
-- "faz o trabalho de [disciplina]" → Workflow completo
+- "faz o trabalho de [disciplina]" → fluxo completo acima
+- "aprova [draft]" → POST /approve (com submit no Moodle)
+- "rejeita [draft]" → POST /reject
+- "resume [matéria] para estudar" → POST /study-summary (usa cache .md; formatos md|pdf|pptx + diagrama + imagens)
 - "integrantes: fulano, ciclano" → atualiza ctx
 - "formato: pdf" → atualiza ctx
 
-## Passo a passo
+## Imagens e diagramas
 
-### 1. Identificar o assignment
-```
-list_assignments(course_ids=[...])
-```
-Encontre o assignment pelo nome/módulo que o usuário mencionou.
-
-### 2. Puxar contexto
-```
-get_course_contents(course_id=...)
-download_file(file_url=..., save_path="~/Documentos/moodle-workflows/context/...")
-```
-Baixe slides/docs de referência.
-
-### 3. Analisar requisitos do assignment
-Olhe a descrição (`intro`) e os `name` para saber:
-- Formato exigido: PDF, Word, código, relatório
-- Tema/questão
-- Critérios de avaliação (rubric)
-- Prazo
-
-### 4. Verificar ctx
-Se `ctx.team_members` ou `ctx.format` forem null, pergunte ao usuário antes de gerar.
-
-### 5. Gerar conteúdo
-Use o modelo de IA para gerar o conteúdo baseado nos requisitos.
-
-### 6. Formatar e salvar
-Salve em `~/Documentos/moodle-workflows/`.
+- Mapas mentais/diagramas → Mermaid local (`POST /generate-diagram`, grátis, PNG).
+- Imagens generativas → cadeia de provedores (`IMAGE_PROVIDERS`, padrão `openrouter,openai`):
+  - `openrouter` (default, modelo `OPENROUTER_IMAGE_MODEL`, usa créditos)
+  - `openai` (fallback, modelo `OPENAI_IMAGE_MODEL=gpt-image-1-mini`, requer `OPENAI_API_KEY`)
+  - `POST /generate-image` aceita `provider` p/ forçar um dos dois; sem ele, tenta em ordem.
+- NOTA: API do Claude (Anthropic) NÃO gera imagens — só interpreta. Via harness (Codex/Claude com MCP) o próprio agente pode gerar usando as ferramentas dele; no backend a geração é openrouter→openai.
+- Convenção no markdown: `[IMAGE: descrição em inglês]` vira PNG; blocos ` ```mermaid ` viram diagramas.
 
 ## Endpoints
 
-- `GET /checklist` — lista assignments com status (submission)
+- `GET /checklist` — lista + sync de conhecimento
+- `GET /drafts` — rascunhos pendentes
+- `POST /generate` — gera rascunho (body: assignment_id, format, use_ai=true)
+- `POST /approve` — aprova + submete (body: draft_id, submit=true)
+- `POST /reject` — rejeita (body: draft_id, motivo)
+- `POST /sync-knowledge` — atualiza .md por módulo
+- `GET /knowledge` — lista cache
+- `POST /study-summary` — resumo p/ estudo (course_id, topic, format, with_diagram, with_images)
+- `POST /generate-image` / `POST /generate-diagram`
 - `POST /chat` — mensagem + file opcional
-- `POST /generate` — gera trabalho

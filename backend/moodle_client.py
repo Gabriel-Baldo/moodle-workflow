@@ -18,6 +18,9 @@ def get_env() -> dict[str, str]:
         "OPENROUTER_MODEL": os.environ.get("OPENROUTER_MODEL", "openrouter/z-ai/glm-5.2:free"),
         "OUTPUT_DIR": os.environ.get("OUTPUT_DIR", "~/Documentos/moodle-workflows"),
         "DEFAULT_FORMAT": os.environ.get("DEFAULT_FORMAT", "pdf"),
+        "IMAGE_PROVIDERS": os.environ.get("IMAGE_PROVIDERS", "openrouter,openai"),
+        "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
+        "OPENAI_IMAGE_MODEL": os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-1-mini"),
     }
 
 
@@ -82,6 +85,46 @@ class MoodleClient:
         r.raise_for_status()
         dest.write_bytes(r.content)
         return len(r.content)
+
+    # -- Submissão (chamado apenas após approve do usuário) --
+    async def get_submission_status(self, assignment_id: int) -> dict:
+        return await self.call("mod_assign_get_submission_status", assignid=assignment_id)
+
+    async def save_submission(self, assignment_id: int, plugindata: dict | None = None) -> dict:
+        params: dict[str, Any] = {"assignmentid": assignment_id}
+        if plugindata:
+            params["plugindata"] = plugindata
+        return await self.call("mod_assign_save_submission", **params)
+
+    async def submit_for_grading(self, assignment_id: int, accept_terms: bool = True) -> dict:
+        return await self.call(
+            "mod_assign_submit_for_grading",
+            assignmentid=assignment_id,
+            acceptsubmissionstatement=accept_terms,
+        )
+
+    async def upload_to_draft(self, file_path: str) -> int:
+        """Sobe arquivo p/ área de rascunho do usuário. Retorna o itemid."""
+        dest = Path(file_path).expanduser()
+        if not dest.exists():
+            raise FileNotFoundError(f"Arquivo não encontrado: {file_path}")
+        url = f"{self.url}/webservice/upload.php?token={self.token}"
+        with open(dest, "rb") as f:
+            files = {"file": (dest.name, f, "application/octet-stream")}
+            data = {"filepath": "/", "filearea": "draft", "itemid": "0"}
+            r = await self._client.post(url, data=data, files=files)
+        r.raise_for_status()
+        payload = r.json()
+        if isinstance(payload, dict) and payload.get("exception"):
+            raise RuntimeError(f"Moodle upload error: {payload.get('message')}")
+        return payload[0]["itemid"]
+
+    async def save_submission_with_file(self, assignment_id: int, file_path: str) -> dict:
+        """Anexa arquivo ao assignment (upload + save_submission)."""
+        itemid = await self.upload_to_draft(file_path)
+        return await self.save_submission(
+            assignment_id, plugindata={"files_filemanager": itemid}
+        )
 
 
 def strip_html(text: str) -> str:
