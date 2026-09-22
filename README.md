@@ -1,7 +1,17 @@
-# Moodle Workflow — UTFPR
+# Moodle Workflow — qualquer Moodle (padrão: UTFPR)
 
-Gera trabalhos acadêmicos do Moodle com IA: lista seus assignments, cria o conteúdo,
-aguarda sua validação e submete. Também gera resumos para estudo a partir da matéria.
+Gera trabalhos acadêmicos de qualquer Moodle com IA (vem configurado para a UTFPR):
+lista seus assignments, cria o conteúdo, aguarda sua validação e submete. Também gera resumos para estudo a partir da matéria.
+
+> **Este projeto não é publicado em lugar nenhum — cada pessoa usa localmente.**
+> Você recebe a pasta do projeto (clone ou cópia), configura na sua máquina
+> e usa. Nada seu sai do seu computador, exceto as chamadas ao Moodle e à IA.
+>
+> **Escolha sua trilha:**
+> - 🟢 **[Nunca mexi com programação? Comece aqui](#-trilha-a--começando-do-zero)** —
+>   passo a passo com terminal, Python e assistente, para Windows, Mac e Linux.
+> - 🔵 **[Já tenho opencode, Claude ou outro assistente?](#-trilha-b--já-tenho-assistente)** —
+>   versão curta, direto ao ponto.
 
 ## Como funciona (resumo)
 
@@ -11,101 +21,213 @@ aguarda sua validação e submete. Também gera resumos para estudo a partir da 
 4. Você aprova → ele salva como final **e envia no Moodle**
 5. Para estudar: "resume [matéria]" → resumo em PDF/slides a partir dos `.md`
 
-## Passo a passo
+---
 
-### 1. Instalar
+## 🟢 Trilha A — Começando do zero
+
+> Você não precisa ser da área de TI. Se sabe abrir um programa, copiar e colar
+> e seguir uma receita, consegue. Reserve ~20 minutos.
+
+### A0. O que é o "terminal"?
+
+É aquela tela (geralmente preta) onde se digita comandos:
+
+- **Windows:** procure **"Terminal"** ou **"PowerShell"** no menu Iniciar
+- **Mac:** procure **"Terminal"** no Spotlight (`Cmd + Espaço`)
+- **Linux:** `Ctrl + Alt + T`
+
+Todo bloco de código deste guia é um comando para colar no terminal e apertar Enter.
+
+### A1. Pegue a pasta do projeto
+
+Copie a pasta `moodle-workflow-project` para o seu computador
+(receba de quem te passou, ou `git clone` se tiver o endereço).
+Depois entre nela no terminal:
+
+```bash
+cd moodle-workflow-project
+```
+
+### A2. Instale o Python
+
+Teste primeiro:
+
+```bash
+python3 --version
+```
+
+Apareceu `Python 3.11` (ou maior)? Pule para o A3. Deu erro? Instale:
+
+- **Windows:** baixe em [python.org/downloads](https://www.python.org/downloads/).
+  ⚠️ Na instalação, marque **"Add python.exe to PATH"** antes de clicar em Install.
+- **Mac:** digite `brew install python3` no terminal
+  (sem `brew`? instale por [brew.sh](https://brew.sh/) ou baixe em python.org).
+- **Linux (Ubuntu/Debian):** `sudo apt install python3 python3-pip`
+
+Teste de novo com `python3 --version`. Agora instale as dependências:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Conectar no Moodle (UTFPR)
+### A3. Instale o assistente (opencode — recomendado)
 
-Automático (pede RA + senha, salva só o token):
+O assistente conversa com você ("quais pendentes?", "faz o trabalho X").
+Sem ele dá para usar, mas digitando comandos — bem menos amigável.
+
+- **Mac e Linux:**
+  ```bash
+  curl -fsSL https://opencode.ai/install | bash
+  ```
+- **Windows:** o recomendado é o **WSL**
+  (guia: [opencode.ai/docs/windows-wsl](https://opencode.ai/docs/windows-wsl)).
+  Sem WSL: `choco install opencode`, `scoop install opencode`
+  ou `npm install -g opencode-ai`.
+
+Abra o assistente dentro da pasta do projeto:
 
 ```bash
-bash scripts/setup-utfpr.sh
+cd moodle-workflow-project
+opencode
 ```
 
-Ou manual: gere um token em `https://moodle.utfpr.edu.br/login/token.php`
-e coloque no `.env`:
+Na primeira vez, digite `/connect` e siga a tela para ligar um provedor de IA
+(para iniciantes, o **Zen** do próprio opencode é o mais simples).
+
+### A4. Conecte o seu Moodle
+
+No terminal, dentro da pasta do projeto (padrão: UTFPR; outro Moodle:
+`bash scripts/setup-moodle.sh --url https://seu.moodle.br`):
 
 ```bash
-cp .env.example .env
-# edite: MOODLE_URL, MOODLE_TOKEN
+bash scripts/setup-moodle.sh
 ```
 
-### 3. (Opcional) Ativar IA e imagens
+Ele pede a **URL** (Enter = UTFPR), seu **usuário** e **senha**
+(a senha não fica salva — só o token de acesso).
 
-Sem chave, o workflow funciona com template local. Para conteúdo real com IA:
+> **Windows sem WSL:** se o comando `bash` não existir, rode dentro do
+> **Git Bash** ([git-scm.com/downloads](https://git-scm.com/downloads)).
+> Alternativa: gere o token em `<sua-url-moodle>/login/token.php`
+> e cole no arquivo `.env` (copie antes: `cp .env.example .env`).
+
+### A5. Primeiro uso — as 4 frases mágicas
+
+Com o assistente aberto na pasta do projeto, diga:
+
+1. **"quais pendentes?"** → mostra trabalhos e salva resumos da matéria
+2. **"faz o trabalho X"** → gera rascunho e mostra para você revisar
+3. **"aprova [draft]"** → salva final **e envia no Moodle**
+4. **"resume [matéria]"** → resumo para estudar (PDF ou slides)
+
+⚠️ **Regra de ouro:** NADA é enviado sem o seu "aprova". Revise tranquilo.
+
+### A6. (Opcional) Conteúdo real com IA
+
+Sem chave de IA, os textos saem como modelo simples. Para conteúdo completo,
+crie uma chave grátis em [openrouter.ai/keys](https://openrouter.ai/keys)
+e coloque no arquivo `.env`:
 
 ```env
-OPENROUTER_API_KEY=sua_chave        # texto + imagens (modelo free p/ texto)
-OPENAI_API_KEY=sua_chave            # fallback de imagens (opcional)
+OPENROUTER_API_KEY=sua_chave
 ```
 
-Chave OpenRouter grátis: `https://openrouter.ai/keys`
+---
 
-### 4. Usar
+## 🔵 Trilha B — Já tenho assistente
 
-**Via chat (opencode, com a skill `moodle-workflow`):**
+Você com opencode, Claude Code/Desktop, Cursor, Windsurf, Codex ou similar:
+
+```bash
+cd moodle-workflow-project
+pip install -r requirements.txt
+bash scripts/setup-moodle.sh      # URL + usuário + senha → token (só o token é salvo)
+bash scripts/setup-mcp.sh        # liga os MCPs no seu harness (opcional)
+```
+
+Ative a skill **`moodle-workflow`** no seu harness e use:
 
 | Fala | Acontece |
 |---|---|
 | "quais pendentes?" | Lista assignments + atualiza resumos da matéria |
-| "faz o trabalho X" | Gera rascunho e te mostra para validar |
-| "aprova [draft]" | Salva final + envia no Moodle |
-| "resume [matéria]" | Resumo para estudo (PDF/slides) |
+| "faz o trabalho X" | Gera rascunho em `drafts/` e mostra para validar |
+| "aprova [draft]" | Move p/ `final/` + envia no Moodle |
+| "rejeita [draft]" | Descarta p/ refazer |
+| "resume [matéria]" | Resumo p/ estudo (md/pdf/pptx + diagrama) |
 
-**Via CLI:**
+Env (`.env`, a partir do `.env.example`):
 
-```bash
-python3 scripts/workflow.py --list                                        # pendentes
-python3 scripts/workflow.py --generate --assignment-id 123 --format pdf   # rascunho
-python3 scripts/workflow.py --drafts                                      # ver rascunhos
-python3 scripts/workflow.py --approve <draft_id>                          # aprovar + enviar
-python3 scripts/workflow.py --sync-knowledge                              # atualizar resumos
+```env
+MOODLE_URL=https://moodle.utfpr.edu.br   # troque pelo seu Moodle
+MOODLE_TOKEN=
+INSTITUTION_NAME=UTFPR                   # aparece no cabeçalho gerado pela IA
+OPENROUTER_API_KEY=          # texto (free) + imagens
+OPENROUTER_IMAGE_MODEL=bytedance-seed/seedream-4.5
+OPENAI_API_KEY=              # fallback de imagens (opcional)
+IMAGE_PROVIDERS=openrouter,openai
+OUTPUT_DIR=~/Documentos/moodle-workflows
 ```
 
-**Via API:**
+> Nota: a API do Claude não gera imagens (só interpreta) — a geração no backend
+> é OpenRouter → OpenAI. Via harness, o próprio agente pode gerar com as ferramentas dele.
 
-```bash
-python3 -m uvicorn backend.main:app --port 8000
-# GET  /checklist  → pendentes (+ sync de resumos)
-# POST /generate   → rascunho (assignment_id, format)
-# POST /approve    → aprova + envia (draft_id)
-# POST /study-summary → resumo (course_id, topic, format)
-```
+---
 
-## Onde ficam os arquivos
+## Referência
 
-Tudo em `~/Documentos/moodle-workflows/` (configurável via `OUTPUT_DIR`):
+### Onde ficam os arquivos
+
+Tudo em `~/Documentos/moodle-workflows/` (muda via `OUTPUT_DIR`):
 
 - `drafts/` — rascunhos aguardando seu aval
 - `final/` — aprovados e enviados
 - `conhecimento/` — um `.md` por módulo da matéria (base dos resumos)
 - `resumos/`, `imagens/`, `diagramas/` — estudo e assets
 
-## Formatos de saída
+### Formatos de saída
 
 `pdf` · `docx` · `pptx` · `xlsx` · `sql` · `java` · `c` · `py` · `md`
 
-## Regras importantes
+### Via CLI (sem assistente)
+
+```bash
+python3 scripts/workflow.py --list                                        # pendentes (+ sync resumos)
+python3 scripts/workflow.py --generate --assignment-id 123 --format pdf   # rascunho
+python3 scripts/workflow.py --drafts                                      # ver rascunhos
+python3 scripts/workflow.py --approve <draft_id>                          # aprovar + enviar
+python3 scripts/workflow.py --sync-knowledge                              # atualizar resumos
+```
+
+### Via API
+
+```bash
+python3 -m uvicorn backend.main:app --port 8000
+# GET  /checklist      → pendentes (+ sync de resumos)
+# POST /generate       → rascunho (assignment_id, format, use_ai)
+# POST /approve        → aprova + envia (draft_id, submit)
+# POST /reject         → rejeita (draft_id, motivo)
+# POST /study-summary  → resumo (course_id, topic, format)
+# POST /generate-image / POST /generate-diagram
+```
+
+### Regras importantes
 
 - **Nada é enviado sem seu "aprova" explícito.**
 - Sem `OPENROUTER_API_KEY`, o conteúdo sai como template (placeholder).
 - Imagens geradas usam créditos (OpenRouter/OpenAI); diagramas Mermaid são grátis.
 
-## Problemas comuns
+### Se algo der errado
 
-| Erro | Causa |
+| Sintoma | O que fazer |
 |---|---|
-| `Assignment não encontrado` | ID errado — confira com `--list` |
-| `OPENROUTER_API_KEY não definida` | Sem chave IA — sai template; adicione a chave p/ conteúdo real |
-| `Falha ao submeter` | Faça upload manual do arquivo em `final/` |
-| `mermaid/mermaidx não instalado` | `pip install mermaidx` |
+| `python3: comando não encontrado` | Refaça o passo A2 (no Windows, marcando o PATH) |
+| `bash: comando não encontrado` (Windows) | Use Git Bash ou WSL |
+| `token inválido` / erro de login | Refaça o passo A4, confira RA e senha |
+| Texto com `[placeholder]` | Falta chave de IA — passo A6 |
+| `Falha ao submeter` | Envie manualmente o arquivo de `final/` pelo site do Moodle |
+| `Assignment não encontrado` | Confira o ID com `--list` ou "quais pendentes?" |
 
-## Detalhes técnicos
+### Detalhes técnicos
 
 <details>
 <summary>Estrutura do projeto</summary>
@@ -124,18 +246,6 @@ backend/
   drafts.py        ← pipe drafts/ → final/
 scripts/workflow.py ← CLI
 ```
-
-</details>
-
-<details>
-<summary>Configurar MCP no seu harness (opcional)</summary>
-
-```bash
-bash scripts/setup-mcp.sh   # Claude Code, Desktop, Cursor, Windsurf, Codex
-```
-
-Ou manual — o `mcp.json` do projeto tem os 5 servidores
-(`moodle`, `slides`, `spreadsheets`, `filesystem`, `pdf-tools`).
 
 </details>
 
