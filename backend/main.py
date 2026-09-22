@@ -13,6 +13,8 @@ from backend.images import (
     render_mermaid,
     mindmap_from_topics,
     generate_image_openrouter,
+    generate_image,
+    image_provider_chain,
     materialize_assets,
 )
 from pathlib import Path
@@ -101,6 +103,7 @@ class ImageRequest(BaseModel):
     output_name: str | None = None
     aspect_ratio: str = "1:1"
     output_format: str = "png"
+    provider: str | None = None  # openrouter | openai | None (tenta cadeia)
 
 
 class DiagramRequest(BaseModel):
@@ -358,20 +361,21 @@ async def study_summary(req: StudySummaryRequest):
 
 
 @app.post("/generate-image")
-async def generate_image(req: ImageRequest):
+async def generate_image_endpoint(req: ImageRequest):
     out_dir = _output_dir() / "imagens"
     out_dir.mkdir(parents=True, exist_ok=True)
     name = req.output_name or f"img_{uuid.uuid4().hex[:8]}.{req.output_format}"
     if not name.endswith(f".{req.output_format}"):
         name += f".{req.output_format}"
+    chain = [req.provider] if req.provider in ("openrouter", "openai") else None
     try:
-        path = await generate_image_openrouter(
-            req.prompt, str(out_dir / name),
+        path, used = await generate_image(
+            req.prompt, str(out_dir / name), providers=chain,
             aspect_ratio=req.aspect_ratio, output_format=req.output_format,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    return {"status": "generated", "output": path}
+    return {"status": "generated", "output": path, "provider": used}
 
 
 @app.post("/generate-diagram")

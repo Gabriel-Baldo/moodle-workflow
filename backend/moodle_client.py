@@ -18,6 +18,9 @@ def get_env() -> dict[str, str]:
         "OPENROUTER_MODEL": os.environ.get("OPENROUTER_MODEL", "openrouter/z-ai/glm-5.2:free"),
         "OUTPUT_DIR": os.environ.get("OUTPUT_DIR", "~/Documentos/moodle-workflows"),
         "DEFAULT_FORMAT": os.environ.get("DEFAULT_FORMAT", "pdf"),
+        "IMAGE_PROVIDERS": os.environ.get("IMAGE_PROVIDERS", "openrouter,openai"),
+        "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
+        "OPENAI_IMAGE_MODEL": os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-1-mini"),
     }
 
 

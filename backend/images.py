@@ -18,6 +18,18 @@ from pathlib import Path
 DEFAULT_IMAGE_MODEL = os.environ.get(
     "OPENROUTER_IMAGE_MODEL", "bytedance-seed/seedream-4.5"
 )
+DEFAULT_OPENAI_IMAGE_MODEL = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-1-mini")
+
+
+def image_provider_chain() -> list[str]:
+    """Ordem de tentativa, configurável via IMAGE_PROVIDERS.
+
+    Ex: IMAGE_PROVIDERS=openrouter,openai
+    Provedores válidos: openrouter, openai. Desconhecidos são ignorados.
+    """
+    raw = os.environ.get("IMAGE_PROVIDERS", "openrouter,openai")
+    chain = [p.strip().lower() for p in raw.split(",") if p.strip()]
+    return [p for p in chain if p in ("openrouter", "openai")] or ["openrouter"]
 
 
 # ---------------------------------------------------------------------------
@@ -154,6 +166,79 @@ async def generate_image_openrouter(
     return str(out)
 
 
+async def generate_image_openai(
+    prompt: str,
+    output_path: str,
+    model: str | None = None,
+    size: str = "1024x1024",
+) -> str:
+    """Gera imagem via OpenAI POST /v1/images/generations. Requer OPENAI_API_KEY."""
+    import httpx
+
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY não definida — provedor openai indisponível.")
+
+    body = {
+        "model": model or DEFAULT_OPENAI_IMAGE_MODEL,
+        "prompt": prompt,
+        "n": 1,
+        "size": size,
+    }
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=180.0) as client:
+        r = await client.post(
+            "https://api.openai.com/v1/images/generations", json=body, headers=headers
+        )
+        r.raise_for_status()
+        data = r.json()
+
+    items = data.get("data", [])
+    if not items:
+        raise RuntimeError(f"OpenAI não retornou imagem: {data}")
+    first = items[0]
+    out = Path(output_path).expanduser()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if first.get("b64_json"):
+        out.write_bytes(base64.b64decode(first["b64_json"]))
+    elif first.get("url"):
+        async with httpx.AsyncClient(timeout=120.0) as c2:
+            rr = await c2.get(first["url"])
+            rr.raise_for_status()
+            out.write_bytes(rr.content)
+    else:
+        raise RuntimeError(f"Formato de resposta desconhecido: {list(first.keys())}")
+    return str(out)
+
+
+async def generate_image(
+    prompt: str,
+    output_path: str,
+    providers: list[str] | None = None,
+    aspect_ratio: str = "1:1",
+    output_format: str = "png",
+) -> tuple[str, str]:
+    """Tenta provedores em ordem até um funcionar. Retorna (caminho, provedor).
+
+    Raises RuntimeError agregando os erros se todos falharem.
+    """
+    chain = providers or image_provider_chain()
+    errors: list[str] = []
+    for provider in chain:
+        try:
+            if provider == "openai":
+                path = await generate_image_openai(prompt, output_path)
+            else:
+                path = await generate_image_openrouter(
+                    prompt, output_path,
+                    aspect_ratio=aspect_ratio, output_format=output_format,
+                )
+            return path, provider
+        except Exception as e:
+            errors.append(f"{provider}: {e}")
+    raise RuntimeError("Todos os provedores de imagem falharam — " + " | ".join(errors))
+
+
 async def materialize_assets(
     markdown_text: str,
     assets_dir: str,
@@ -179,10 +264,8 @@ async def materialize_assets(
 
     for i, prompt in enumerate(extract_image_prompts(markdown_text)):
         try:
-            p = await generate_image_openrouter(
-                prompt, str(dest / f"image_{i+1}.png"), model=image_model
-            )
-            images.append(p)
+            p, used = await generate_image(prompt, str(dest / f"image_{i+1}.png"))
+            images.append(f"{p} (via {used})")
         except Exception as e:
             errors.append(f"imagem {i+1} ('{prompt[:40]}'): {e}")
 
