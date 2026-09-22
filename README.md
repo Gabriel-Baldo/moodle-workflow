@@ -1,5 +1,10 @@
 # Moodle Workflow — UTFPR
 
+> **Nunca mexeu com programação?** Comece pelo
+> **[Guia do Iniciante](docs/guia-iniciante.md)** — passo a passo com terminal,
+> Python e opencode para **Windows, Mac e Linux**, sem presumir nada.
+> O resto deste README é a versão resumida para quem já tem intimidade.
+
 Gera trabalhos acadêmicos do Moodle com IA: lista seus assignments, cria o conteúdo,
 aguarda sua validação e submete. Também gera resumos para estudo a partir da matéria.
 
