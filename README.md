@@ -38,15 +38,19 @@ lista seus assignments, cria o conteúdo, aguarda sua validação e submete. Tam
 
 Todo bloco de código deste guia é um comando para colar no terminal e apertar Enter.
 
-### A1. Pegue a pasta do projeto
+### A1. Baixe o projeto (obrigatório)
 
-Copie a pasta `moodle-workflow-project` para o seu computador
-(receba de quem te passou, ou `git clone` se tiver o endereço).
-Depois entre nela no terminal:
+Sem os arquivos do projeto na sua máquina, nada funciona. No terminal:
 
 ```bash
-cd moodle-workflow-project
+git clone https://github.com/Gabriel-Baldo/moodle-workflow.git
+cd moodle-workflow
 ```
+
+> Sem `git`? Instale por [git-scm.com/downloads](https://git-scm.com/downloads)
+> e rode de novo. Alternativa: baixe o ZIP em
+> `https://github.com/Gabriel-Baldo/moodle-workflow` (botão verde **Code** →
+> **Download ZIP**), descompacte e entre na pasta com `cd`.
 
 ### A2. Instale o Python
 
@@ -87,7 +91,7 @@ Sem ele dá para usar, mas digitando comandos — bem menos amigável.
 Abra o assistente dentro da pasta do projeto:
 
 ```bash
-cd moodle-workflow-project
+cd moodle-workflow
 opencode
 ```
 
@@ -139,7 +143,7 @@ OPENROUTER_API_KEY=sua_chave
 Você com opencode, Claude Code/Desktop, Cursor, Windsurf, Codex ou similar:
 
 ```bash
-cd moodle-workflow-project
+cd moodle-workflow
 pip install -r requirements.txt
 bash scripts/setup-moodle.sh      # URL + usuário + senha → token (só o token é salvo)
 bash scripts/setup-mcp.sh        # liga os MCPs no seu harness (opcional)
