@@ -16,23 +16,22 @@ read -p "Escolha: " choice
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 MCP_JSON="$PROJECT_DIR/mcp.json"
 
-# Generaliza para qualquer Moodle: se .env tem MOODLE_URL, injeta no JSON usado
-ENV_URL="$(grep -E '^MOODLE_URL=' "$PROJECT_DIR/.env" 2>/dev/null | cut -d= -f2- | tr -d ' ')"
-if [ -n "$ENV_URL" ]; then
-  MCP_JSON_TMP="$(mktemp)"
-  MOODLE_URL_OVERRIDE="$ENV_URL" SRC_JSON="$MCP_JSON" DST_JSON="$MCP_JSON_TMP" python3 -c "
+# O servidor moodle sobe via launcher, que lê MOODLE_URL/MOODLE_TOKEN do .env
+# (mcp-moodle trava sem responder quando MOODLE_TOKEN não está no ambiente).
+LAUNCHER="$PROJECT_DIR/scripts/mcp-moodle-launcher.sh"
+chmod +x "$LAUNCHER"
+MCP_JSON_TMP="$(mktemp)"
+LAUNCHER_PATH="$LAUNCHER" SRC_JSON="$MCP_JSON" DST_JSON="$MCP_JSON_TMP" python3 -c "
 import json, os
 with open(os.environ['SRC_JSON']) as f:
     mcp = json.load(f)
-try:
-    mcp['mcpServers']['moodle']['env']['MOODLE_URL'] = os.environ['MOODLE_URL_OVERRIDE']
-except KeyError:
-    pass
+mcp['mcpServers']['moodle'] = {'command': os.environ['LAUNCHER_PATH'], 'args': [], 'env': {}}
 with open(os.environ['DST_JSON'], 'w') as f:
     json.dump(mcp, f, indent=2)
 "
-  MCP_JSON="$MCP_JSON_TMP"
-  echo "Usando MOODLE_URL do .env: $ENV_URL"
+MCP_JSON="$MCP_JSON_TMP"
+if ! grep -qE '^MOODLE_TOKEN=.+' "$PROJECT_DIR/.env" 2>/dev/null; then
+  echo "⚠ MOODLE_TOKEN ausente no .env — rode scripts/setup-moodle.sh antes de usar o MCP moodle."
 fi
 
 case "$choice" in
@@ -46,7 +45,7 @@ with open('$CONFIG') as f:
     data = json.load(f)
 with open('$MCP_JSON') as f:
     mcp = json.load(f)
-data['mcpServers'] = mcp.get('mcpServers', {})
+data.setdefault('mcpServers', {}).update(mcp.get('mcpServers', {}))
 with open('$CONFIG', 'w') as f:
     json.dump(data, f, indent=2)
 print('Claude Code configurado!')
