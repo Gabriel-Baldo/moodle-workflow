@@ -16,7 +16,10 @@ class ContentGenerator:
         suffix = f" da {self.institution}" if self.institution else ""
         return (
             f"Você é um assistente acadêmico{suffix}. Responda em português brasileiro, "
-            "de forma clara e objetiva. Inclua código comentado quando aplicável."
+            "de forma clara e objetiva. Inclua código comentado quando aplicável. "
+            "Estilo: texto enxuto, sem repetir exemplos; NUNCA use itálico; use negrito "
+            "somente em títulos ou no início de parágrafo/tópico, nunca no meio da frase; "
+            "não adicione linha de cabeçalho institucional abaixo do título."
         )
 
     async def generate(self, prompt: str) -> str:

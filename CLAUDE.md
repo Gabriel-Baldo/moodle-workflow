@@ -54,3 +54,9 @@ ctx = {
 - `POST /study-summary` — resumo p/ estudo (usa .md cacheados)
 - `POST /generate-image` / `POST /generate-diagram`
 - `POST /chat` — message + file opcional
+
+## Estilo dos trabalhos gerados
+- Texto enxuto (estudo dirigido ≈ 2 páginas), sem repetir exemplos.
+- Sem itálico. Negrito só em títulos ou no início de parágrafo/tópico, nunca no meio da frase.
+- Sem linha institucional (instituição · curso · disciplina) abaixo do título.
+- Envio: só com "pode enviar" explícito; se `submissiondrafts=0`, não chamar `submit_for_grading`; confirmar com `mod_assign_get_submission_status`.
